@@ -96,15 +96,16 @@ jobs:
           echo "report=${REPORT}" >> "$GITHUB_OUTPUT"
           echo "Found report: ${REPORT}"
 
-      - name: Enforce coverage threshold (>= ${{ env.COVERAGE_THRESHOLD_PCT }}%)
+      - name: "Enforce coverage threshold (>= ${{ env.COVERAGE_THRESHOLD_PCT }}%)"
         run: |
           REPORT="${{ steps.locate.outputs.report }}"
           LINE_RATE=$(grep -oP '(?<=<coverage[^>]*line-rate=")[0-9.]+' "${REPORT}" | head -n 1)
           BRANCH_RATE=$(grep -oP '(?<=<coverage[^>]*branch-rate=")[0-9.]+' "${REPORT}" | head -n 1)
           echo "line-rate=${LINE_RATE}  branch-rate=${BRANCH_RATE}"
-          awk -v lr="${LINE_RATE}" -v thr="$(echo "${{ env.COVERAGE_THRESHOLD_PCT }}/100" | bc -l)" \
+          THRESHOLD="${{ env.COVERAGE_THRESHOLD_PCT }}"
+          awk -v lr="${LINE_RATE}" -v thr="$(echo "${THRESHOLD}/100" | bc -l)" \
               'BEGIN { exit (lr+0 < thr+0) ? 1 : 0 }' \
-              || { echo "::error::Line coverage ${LINE_RATE} below threshold ${{ env.COVERAGE_THRESHOLD_PCT }}%"; exit 1; }
+              || { echo "::error::Line coverage ${LINE_RATE} below threshold ${THRESHOLD}%"; exit 1; }
 
       - name: Upload test results
         if: always()
