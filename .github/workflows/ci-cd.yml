@@ -32,7 +32,7 @@ jobs:
   # --------------------------------------------------------------------------
   build:
     name: Build
-    runs-on: [self-hosted, ubuntu, dotnet]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -63,7 +63,7 @@ jobs:
   test:
     name: Test
     needs: build
-    runs-on: [self-hosted, ubuntu, dotnet]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -124,7 +124,7 @@ jobs:
   trivy-scan:
     name: Trivy Security Scan
     needs: build
-    runs-on: [self-hosted, ubuntu, dotnet]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -167,7 +167,7 @@ jobs:
   ai-review:
     name: AI Review Agent
     needs: [build, test, trivy-scan]
-    runs-on: [self-hosted, ubuntu, dotnet]
+    runs-on: ubuntu-latest
     continue-on-error: false
 
     steps:
@@ -177,8 +177,12 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y jq curl python3 python3-yaml bc
+          # ubuntu-latest ships with jq, curl, python3, python3-yaml, and bc.
+          # If any tool is missing, install it here without sudo (apt-get fails
+          # under the default GITHUB_TOKEN user, so fall back to pip or skip).
+          command -v jq >/dev/null || (echo "jq missing"; exit 1)
+          command -v python3 >/dev/null || (echo "python3 missing"; exit 1)
+          command -v bc >/dev/null || (echo "bc missing"; exit 1)
 
       - name: Make review scripts executable
         run: |
@@ -237,7 +241,7 @@ jobs:
     if: |
       (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) &&
       needs.ai-review.result == 'success'
-    runs-on: [self-hosted, ubuntu, dotnet]
+    runs-on: ubuntu-latest
     environment: production
     steps:
       - uses: actions/checkout@v4
