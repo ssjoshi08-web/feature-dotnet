@@ -41,6 +41,13 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Create solution
+        run: |
+          if [ ! -f UserApi.sln ]; then
+            dotnet new sln -n UserApi
+            find . -name "*.csproj" -not -path "./samples/*" -exec dotnet sln add {} \;
+          fi
+
       - name: Restore
         run: dotnet restore
 
@@ -71,6 +78,13 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Create solution
+        run: |
+          if [ ! -f UserApi.sln ]; then
+            dotnet new sln -n UserApi
+            find . -name "*.csproj" -not -path "./samples/*" -exec dotnet sln add {} \;
+          fi
 
       - name: Restore
         run: dotnet restore
