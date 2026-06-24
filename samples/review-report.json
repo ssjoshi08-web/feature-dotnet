@@ -1,0 +1,104 @@
+{
+  "agent_name": "AI Review Agent",
+  "provider": "claude",
+  "status": "FAIL",
+  "security_findings": 2,
+  "code_smells": 3,
+  "architecture_issues": 1,
+  "test_coverage_issues": 1,
+  "summary": "Critical security issue detected: a hardcoded AWS access key was found in src/services/StorageService.cs. Additionally, a missing authorization check on PUT /api/users/{id} violates OWASP A01. Code-quality and architecture findings are advisory.",
+  "recommendations": [
+    "Remove the hardcoded AWS access key from src/services/StorageService.cs and load it from AWS_ACCESS_KEY_ID environment variable or AWS Secrets Manager.",
+    "Add an authorization attribute ([Authorize(Roles=\"Admin\")]) to UserController.Update.",
+    "Refactor OrderProcessor.CalculateTotals (cyclomatic complexity 14) into smaller helpers.",
+    "Add unit tests for PaymentService.Refund covering the partial-refund edge case.",
+    "Move NotificationService.SendEmail out of the Domain layer; it imports MailKit, violating layering rules."
+  ],
+  "metadata": {
+    "model": "claude-opus-4-8",
+    "endpoint": "https://api.anthropic.com/v1/messages",
+    "tokens_used": 3214,
+    "duration_ms": 18742,
+    "files_reviewed": 142,
+    "timestamp": "2026-06-24T10:15:42Z",
+    "skills_invoked": ["security", "code_review", "testing", "architecture"]
+  },
+  "findings": {
+    "security": [
+      {
+        "id": "SEC-001",
+        "severity": "CRITICAL",
+        "type": "hardcoded_secret",
+        "file": "src/services/StorageService.cs",
+        "line": 27,
+        "description": "AWS access key embedded in source. Pattern matched: AKIA prefix.",
+        "evidence": "AKIA****REDACTED**** (sha256 prefix: 9f3c…)",
+        "remediation": "Rotate the key immediately, then load from environment or AWS Secrets Manager.",
+        "cwe": "CWE-798"
+      },
+      {
+        "id": "SEC-002",
+        "severity": "HIGH",
+        "type": "owasp",
+        "file": "src/api/Controllers/UserController.cs",
+        "line": 88,
+        "description": "Missing authorization check on PUT /api/users/{id} — any authenticated user can update any other user.",
+        "remediation": "Add [Authorize(Policy=\"OwnerOrAdmin\")] and verify the caller owns the resource.",
+        "cwe": "CWE-862"
+      }
+    ],
+    "code_quality": [
+      {
+        "id": "CS-001",
+        "smell_type": "complexity",
+        "file": "src/domain/OrderProcessor.cs",
+        "line": 134,
+        "description": "CalculateTotals cyclomatic complexity = 14 (threshold 10).",
+        "suggestion": "Extract tax, discount, and shipping calculations into separate methods."
+      },
+      {
+        "id": "CS-002",
+        "smell_type": "duplicate_code",
+        "file": "src/api/Controllers/OrderController.cs",
+        "line": 45,
+        "description": "Validation logic duplicated from CartController.AddItem.",
+        "suggestion": "Extract to a shared IValidator<T> implementation."
+      },
+      {
+        "id": "CS-003",
+        "smell_type": "naming",
+        "file": "src/utils/Helpers.cs",
+        "line": 12,
+        "description": "Variable 'd' used for discount amount — non-descriptive.",
+        "suggestion": "Rename to 'discountAmount'."
+      }
+    ],
+    "testing": [
+      {
+        "id": "TST-001",
+        "issue_type": "missing_tests",
+        "file": "tests/PaymentServiceTests.cs",
+        "description": "No tests exist for PaymentService.Refund covering partial refunds.",
+        "recommendation": "Add tests for: full refund, partial refund, refund exceeding original amount."
+      }
+    ],
+    "architecture": [
+      {
+        "id": "ARCH-001",
+        "issue_type": "layer_violation",
+        "from": "src/domain",
+        "to": "src/infrastructure/MailKit",
+        "description": "NotificationService in Domain imports MailKit — infrastructure leakage.",
+        "impact": "Testability",
+        "remediation": "Move NotificationService to Infrastructure; inject an INotificationSender port into the domain.",
+        "severity": "HIGH"
+      }
+    ]
+  },
+  "coverage": {
+    "line_pct": 76.4,
+    "branch_pct": 68.1,
+    "below_threshold": true,
+    "threshold_pct": 80
+  }
+}
