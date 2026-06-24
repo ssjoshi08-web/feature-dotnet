@@ -259,4 +259,5 @@ jobs:
 
       - name: Notify deployment
         if: always()
-        run: echo "Deployment status: ${{ job.status }}"
+        run: |
+          echo "Deployment status: ${{ job.status }}"
