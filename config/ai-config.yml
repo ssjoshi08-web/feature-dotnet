@@ -13,7 +13,7 @@ agent:
 # ---------------------------------------------------------------------------
 # Active provider — change this single value to switch AI backends.
 # ---------------------------------------------------------------------------
-provider: claude   # one of: claude | nvidia | ollama | openai | azure
+provider: nvidia   # one of: claude | nvidia | ollama | openai | azure
 
 # ---------------------------------------------------------------------------
 # Per-provider configuration. Only the block matching `provider:` is used.
