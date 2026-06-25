@@ -54,15 +54,39 @@ REQUEST_BODY="$(jq -n \
      ]
    }')"
 
-RESPONSE="$(curl -sS -X POST "${ENDPOINT}" \
+RESPONSE="$(mktemp)"
+HTTP_CODE="$(curl -sS -o "${RESPONSE}" -w "%{http_code}" -X POST "${ENDPOINT}" \
   -H "Authorization: Bearer ${API_KEY}" \
+  -H "Accept: application/json" \
   -H "Content-Type: application/json" \
-  --data "${REQUEST_BODY}")"
+  --data "${REQUEST_BODY}" || echo "000")"
+echo "[nvidia-provider] HTTP status: ${HTTP_CODE}" >&2
+if [[ ! "${HTTP_CODE}" =~ ^2 ]]; then
+  echo "[nvidia-provider][ERROR] non-2xx response (first 500 bytes):" >&2
+  head -c 500 "${RESPONSE}" >&2
+  echo >&2
+  printf '{"agent_name":"AI Review Agent","provider":"nvidia","status":"ERROR","security_findings":0,"code_smells":0,"architecture_issues":0,"test_coverage_issues":0,"summary":"NVIDIA API call failed (HTTP %s). See job log for response body.","recommendations":["Verify NVIDIA_API_KEY is valid and the model is available on your NIM account."]}\n' "${HTTP_CODE}"
+  rm -f "${RESPONSE}"
+  exit 0
+fi
+RESPONSE_BODY="$(cat "${RESPONSE}")"
+rm -f "${RESPONSE}"
 
 PYTHON_BIN="$(command -v python3 || command -v python)"
-"${PYTHON_BIN}" - <<'PYEOF'
+"${PYTHON_BIN}" - <<PYEOF
 import json, os, re, sys
-raw = json.loads('''${RESPONSE//\'/\'\\\'\'}''')
+try:
+    raw = json.loads('''${RESPONSE_BODY//\'/\'\\\'\'}''')
+except json.JSONDecodeError as e:
+    excerpt = '''${RESPONSE_BODY//\'/\'\\\'\'}'''[:500]
+    print(json.dumps({
+        "agent_name": "AI Review Agent", "provider": "nvidia", "status": "ERROR",
+        "security_findings": 0, "code_smells": 0,
+        "architecture_issues": 0, "test_coverage_issues": 0,
+        "summary": f"NVIDIA returned non-JSON response: {e}. First 500 chars: {excerpt!r}",
+        "recommendations": ["Inspect the HTTP response body in the job log."]
+    }, indent=2))
+    sys.exit(0)
 
 text = ""
 if isinstance(raw, dict):
