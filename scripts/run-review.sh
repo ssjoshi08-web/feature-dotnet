@@ -38,9 +38,9 @@ command -v jq >/dev/null 2>&1 || fail "jq is required" 2
 read_provider() {
   local py
   py="$(command -v python3 || command -v python)"
-  "${py}" - <<PYEOF
-import re, sys, pathlib
-text = pathlib.Path("${CONFIG_FILE}").read_text()
+  CONFIG_FILE="${CONFIG_FILE}" "${py}" - <<'PYEOF'
+import os, re, pathlib
+text = pathlib.Path(os.environ["CONFIG_FILE"]).read_text()
 m = re.search(r'^\s*provider\s*:\s*([A-Za-z0-9_\-]+)', text, re.MULTILINE)
 print(m.group(1) if m else "")
 PYEOF
@@ -58,9 +58,10 @@ read_value() {
   local key="$1"
   local py
   py="$(command -v python3 || command -v python)"
-  "${py}" - "$key" <<'PYEOF'
-import re, sys, pathlib
-key, path = sys.argv[1], "${CONFIG_FILE}"
+  CONFIG_FILE="${CONFIG_FILE}" "${py}" - "$key" <<'PYEOF'
+import os, re, sys, pathlib
+key = sys.argv[1]
+path = os.environ.get("CONFIG_FILE", "")
 text = pathlib.Path(path).read_text()
 m = re.search(rf'^\s*{key}\s*:\s*"?([^"\n]+)"?', text, re.MULTILINE)
 print(m.group(1).strip() if m else "")
