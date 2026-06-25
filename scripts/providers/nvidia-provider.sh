@@ -65,6 +65,8 @@ if [[ ! "${HTTP_CODE}" =~ ^2 ]]; then
   echo "[nvidia-provider][ERROR] non-2xx response (first 500 bytes):" >&2
   head -c 500 "${RESPONSE}" >&2
   echo >&2
+  # Emit a clean ERROR report. The downstream pipeline reads this JSON and
+  # the orchestrator's decision logic will mark the review as ERROR.
   printf '{"agent_name":"AI Review Agent","provider":"nvidia","status":"ERROR","security_findings":0,"code_smells":0,"architecture_issues":0,"test_coverage_issues":0,"summary":"NVIDIA API call failed (HTTP %s). See job log for response body.","recommendations":["Verify NVIDIA_API_KEY is valid and the model is available on your NIM account."]}\n' "${HTTP_CODE}"
   rm -f "${RESPONSE}"
   exit 0
@@ -73,6 +75,11 @@ RESPONSE_BODY="$(cat "${RESPONSE}")"
 rm -f "${RESPONSE}"
 
 PYTHON_BIN="$(command -v python3 || command -v python)"
+# Export the values the Python normalizer needs (CONFIG_FILE, MODEL, ENDPOINT)
+# so that any path through this script — including the early-exit above — has
+# the env set. The Python normalizer falls back to PASS/ERROR JSON if parsing
+# fails, so it always exits 0.
+export CONFIG_FILE MODEL ENDPOINT
 "${PYTHON_BIN}" - <<PYEOF
 import json, os, re, sys
 try:

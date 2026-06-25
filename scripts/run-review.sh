@@ -191,7 +191,8 @@ PYEOF
 )"
 
 # ---------- apply decision policy ----------------------------------------
-DECISION="$(PROVIDER="${PROVIDER}" NORMALISED="${NORMALISED}" \
+DECISION="$(PROVIDER="${PROVIDER}" CONFIG_FILE="${CONFIG_FILE}" \
+NORMALISED="${NORMALISED}" \
 "${PYTHON_BIN}" - <<'PYEOF'
 import os, json, sys, re, pathlib
 cfg_path = os.environ["CONFIG_FILE"]
