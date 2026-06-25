@@ -87,7 +87,6 @@ PROMPT="$(build_prompt)"
 # ---------- gather review corpus -----------------------------------------
 gather_corpus() {
   local include_exts=".cs .java .py .ts .js .go .rb .tf .yml .yaml .json"
-  local exclude_re='/(bin|obj|node_modules|dist|\.git|vendor)/'
   local out=""
   local count=0
   local max=500
@@ -96,8 +95,17 @@ gather_corpus() {
     out+="\n----- FILE: ${f} -----\n$(cat "${REPO_ROOT}/${f}")\n"
     count=$((count + 1))
   done < <(cd "${REPO_ROOT}" && \
-    find . -type f \( $(printf ' -name "%s" -o' ${include_exts} | sed 's/-o$//') \) \
-           ! -path "${exclude_re}*" 2>/dev/null | sed 's|^\./||')
+    find . -type f \
+           \( -name '*.cs' -o -name '*.java' -o -name '*.py' -o -name '*.ts' \
+           -o -name '*.js'  -o -name '*.go' -o -name '*.rb' -o -name '*.tf' \
+           -o -name '*.yml' -o -name '*.yaml' -o -name '*.json' \) \
+           ! -path './bin/*' ! -path '*/bin/*' \
+           ! -path './obj/*' ! -path '*/obj/*' \
+           ! -path './node_modules/*' ! -path '*/node_modules/*' \
+           ! -path './dist/*' ! -path '*/dist/*' \
+           ! -path './.git/*' ! -path '*/.git/*' \
+           ! -path './vendor/*' ! -path '*/vendor/*' \
+           2>/dev/null | sed 's|^\./||')
   printf '%s' "${out}"
 }
 
