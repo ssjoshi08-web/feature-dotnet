@@ -210,10 +210,7 @@ jobs:
       # selected by config/ai-config.yml — the orchestrator dispatches.
       - name: Run AI Review Agent
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           NVIDIA_API_KEY:    ${{ secrets.NVIDIA_API_KEY }}
-          OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
-          AZURE_OPENAI_KEY:  ${{ secrets.AZURE_OPENAI_KEY }}
         run: |
           set -e
           ./scripts/run-review.sh
